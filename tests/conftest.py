@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 from io import BytesIO
 from PIL import Image
 
+from . import yacut
+
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
@@ -26,7 +28,7 @@ pytest_plugins = [
 ]
 
 try:
-    from yacut import app, db
+    from yacut import db
     from yacut.models import URLMap  # noqa
 except NameError as exc:
     raise AssertionError(
@@ -41,7 +43,7 @@ except ImportError as exc:
         f'`{type(exc).__name__}: {exc}`'
     )
 
-assert app.config['SQLALCHEMY_DATABASE_URI'] == _tmp_db_uri, (
+assert yacut.config['SQLALCHEMY_DATABASE_URI'] == _tmp_db_uri, (
     'Проверьте, что конфигурационному ключу `SQLALCHEMY_DATABASE_URI` '
     'присвоено значение с настройками для подключения базы данных с '
     'использованием переменной окружения `DATABASE_URI`.'
@@ -55,19 +57,19 @@ def user_environment():
 
 @pytest.fixture
 def default_app():
-    with app.app_context():
-        yield app
+    with yacut.app_context():
+        yield yacut
 
 
 @pytest.fixture
 def _app():
-    app.config.update({
+    yacut.config.update({
         'TESTING': True,
         'WTF_CSRF_ENABLED': False,
     })
-    with app.app_context():
+    with yacut.app_context():
         db.create_all()
-        yield app
+        yield yacut
         db.drop_all()
         db.session.close()
 
@@ -79,7 +81,7 @@ def client(_app):
 
 @pytest.fixture
 def cli_runner():
-    return app.test_cli_runner()
+    return yacut.test_cli_runner()
 
 
 @pytest.fixture

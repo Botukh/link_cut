@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Загрузить файл - YaCut{% endblock %}
+
+{% block content %}
+<section class="container my-5 px-4">
+  <h1 class="text-center"><span style="color:red">Ya</span>Cut</h1>
+  <p class="text-center my-4">Загрузите файлы и получите на них короткие ссылки</p>
+
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <form method="POST" action="{{ url_for('main.file_upload_view') }}" enctype="multipart/form-data">
+        <div class="form-group mb-3">
+          <input type="file" name="files" class="form-control mb-3" multiple required>
+        </div>
+
+        <div class="text-center">
+          <input type="submit" class="btn btn-primary" value="Загрузить">
+        </div>
+      </form>
+
+      {% if uploaded %}
+      <div class="alert alert-info text-center mt-4">
+        <h5 class="mb-3">Файлы успешно загружены:</h5>
+        <ul class="list-unstyled">
+          {% for filename, short_id in uploaded %}
+          <li class="mb-2">
+            <strong>{{ filename }}</strong><br>
+            <a href="{{ url_for('main.download_file_redirect', short=short_id) }}" target="_blank">
+              {{ request.host_url ~ 'f/' ~ short_id }}
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}
