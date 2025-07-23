@@ -19,10 +19,17 @@ def create_short_url():
         if not custom_id.isalnum() or len(custom_id) > 16:
             return jsonify(
                 message='Указано недопустимое имя для короткой ссылки'), 400
+
+        if custom_id.lower() == 'files':
+            return jsonify(
+                message='Предложенный вариант короткой ссылки уже существует.'
+            ), 400
+
         if URLMap.query.filter_by(short=custom_id).first():
             return jsonify(
                 message='Предложенный вариант короткой ссылки уже существует.'
             ), 400
+
         short = custom_id
     else:
         short = get_unique_short_id()
@@ -32,7 +39,9 @@ def create_short_url():
     db.session.commit()
 
     return jsonify(
-        url=url_map.original, short_link=request.host_url + url_map.short), 201
+        url=url_map.original,
+        short_link=request.host_url + url_map.short
+    ), 201
 
 
 @api_bp.route('/id/<string:short_id>/', methods=['GET'])
