@@ -1,17 +1,25 @@
+import os
+import aiohttp
 import asyncio
+
 from flask import (
-    Blueprint, render_template, flash, redirect, request
+    Blueprint, render_template, request, redirect, flash, url_for
 )
-from urllib.parse import quote
 from werkzeug.utils import secure_filename
+from urllib.parse import quote
 
-from .forms import URLForm
-from .models import URLMap, FileMap
+from . import main_bp
+from .forms import URLForm, FileUploadForm
+from .models import db, URLMap, FileMap
 from .utils import get_unique_short_id
-from .ydisk import publish_and_get_public_url, upload_file_to_disk
-from . import db
 
-main_bp = Blueprint('main', __name__)
+
+DISK_TOKEN = os.getenv('DISK_TOKEN')
+API_HOST = 'https://cloud-api.yandex.net'
+API_VERSION = 'v1/disk'
+UPLOAD_ENDPOINT = f'{API_HOST}/{API_VERSION}/resources/upload'
+PUBLISH_ENDPOINT = f'{API_HOST}/{API_VERSION}/resources/publish'
+METADATA_ENDPOINT = f'{API_HOST}/{API_VERSION}/resources'
 
 
 @main_bp.route('/', methods=['GET', 'POST'])
@@ -53,66 +61,87 @@ def index_view():
 
 @main_bp.route('/files', methods=['GET', 'POST'])
 def file_upload_view():
-    uploaded = []
+    form = FileUploadForm()
+    uploaded = FileMap.query.order_by(FileMap.id.desc()).all()
 
-    if request.method == 'POST':
-        files = request.files.getlist('files')
-        if not files or files == [None]:
-            flash("Файлы не выбраны", "danger")
-            return render_template('files.html', uploaded=uploaded)
+    if request.method == 'POST' and form.validate_on_submit():
+        uploaded_file = form.file.data
+        if not uploaded_file:
+            flash('Файл не выбран', 'danger')
+            return render_template('files.html', form=form, uploaded=uploaded)
 
-        async def process_files():
-            tasks = []
+        filename = secure_filename(uploaded_file.filename)
+        if not filename:
+            flash('Некорректное имя файла.', 'danger')
+            return render_template('files.html', form=form, uploaded=uploaded)
 
-            for file in files:
-                if file.filename == '':
-                    continue
-                filename = secure_filename(file.filename)
-                ydisk_path = f"/Приложения/Uploader/{filename}"
-                short_id = get_unique_short_id()
-                file_data = file.read()
+        tmp_dir = os.path.join(os.getcwd(), 'tmp')
+        os.makedirs(tmp_dir, exist_ok=True)
+        tmp_path = os.path.join(tmp_dir, filename)
+        uploaded_file.save(tmp_path)
+        disk_path = f'disk:/yacut/{filename}'
 
-                async def handle_upload():
-                    try:
-                        await upload_file_to_disk(file_data, ydisk_path)
-                        public_url = await publish_and_get_public_url(
-                            ydisk_path)
-                        file_entry = FileMap(
-                            filename=filename,
-                            ydisk_path=ydisk_path,
-                            short=short_id
-                        )
-                        db.session.add(file_entry)
-                        uploaded.append((filename, short_id, public_url))
-                    except Exception as e:
-                        flash(
-                            f"Ошибка загрузки {filename}: {str(e)}", "danger")
+        headers = {
+            'Authorization': f'OAuth {DISK_TOKEN}',
+            'Content-Type': 'application/json'
+        }
 
-                tasks.append(handle_upload())
+        async def upload_file():
+            async with aiohttp.ClientSession() as session:
+                params = {'path': disk_path, 'overwrite': 'true'}
+                async with session.get(UPLOAD_ENDPOINT, headers=headers, params=params) as resp:
+                    if resp.status != 200:
+                        flash('Не удалось получить ссылку для загрузки.', 'danger')
+                        return None
+                    upload_info = await resp.json()
+                    href = upload_info.get('href')
+                    if not href:
+                        flash('Ошибка: отсутствует upload URL.', 'danger')
+                        return None
 
-            await asyncio.gather(*tasks)
+                with open(tmp_path, 'rb') as f:
+                    async with session.put(href, data=f) as put_resp:
+                        if put_resp.status not in (201, 202):
+                            flash('Ошибка загрузки файла на Яндекс.Диск.', 'danger')
+                            return None
 
-        asyncio.run(process_files())
+                publish_url = f'{PUBLISH_ENDPOINT}?path={quote(disk_path)}'
+                await session.put(publish_url, headers=headers)
 
-        if uploaded:
-            db.session.commit()
-            flash("Файлы успешно загружены", "success")
+                meta_url = f'{METADATA_ENDPOINT}?path={quote(disk_path)}'
+                async with session.get(meta_url, headers=headers) as meta_resp:
+                    if meta_resp.status != 200:
+                        flash('Не удалось получить метаданные файла.', 'warning')
+                        return None
+                    meta_data = await meta_resp.json()
+                    return meta_data.get('public_url', disk_path)
 
-    return render_template('files.html', uploaded=uploaded)
+        public_url = asyncio.run(upload_file())
+        if not public_url:
+            return render_template('files.html', form=form, uploaded=uploaded)
 
+        short_id = get_unique_short_id(FileMap)
+        file_entry = FileMap(
+            filename=filename,
+            short=short_id,
+            path=public_url
+        )
+        db.session.add(file_entry)
+        db.session.commit()
 
-@main_bp.route('/f/<string:short>')
-def download_file_redirect(short):
-    file_entry = FileMap.query.filter_by(short=short).first()
-    if not file_entry:
-        return render_template('errors/404.html'), 404
+        flash('Файл успешно загружен!', 'success')
+        return redirect(url_for('main.file_upload_view'))
 
-    return redirect(f'https://disk.yandex.ru/d/{quote(file_entry.ydisk_path)}')
+    return render_template('files.html', form=form, uploaded=uploaded)
 
 
 @main_bp.route('/<string:short>')
-def redirect_view(short):
-    link = URLMap.query.filter_by(short=short).first()
-    if link:
-        return redirect(link.original)
-    return render_template('errors/404.html'), 404
+def follow_short_link(short):
+    urlmap = URLMap.query.filter_by(short=short).first()
+    if urlmap:
+        return redirect(urlmap.original)
+    filemap = FileMap.query.filter_by(short=short).first()
+    if filemap:
+        return redirect(filemap.path)
+    flash('Ссылка не найдена.', 'danger')
+    return redirect(url_for('main.index_view'))

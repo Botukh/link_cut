@@ -1,23 +1,21 @@
-from flask import Blueprint, request, jsonify
-
-from .models import URLMap
+from flask import Blueprint, jsonify, request
 from . import db
+from .models import URLMap
 from .utils import get_unique_short_id
 
-api_bp = Blueprint('api', __name__)
+api = Blueprint('api', __name__, url_prefix='/api')
 
 
-@api_bp.route('/id/', methods=['POST'])
-def create_short_link():
+@api.route('/id/', methods=['POST'])
+def create_short_url():
     data = request.get_json()
-    if not data:
-        return jsonify(message='Отсутствует тело запроса'), 400
 
-    url = data.get('url')
+    if not data or 'url' not in data:
+        return jsonify(message='\"url\" is a required field!'), 400
+
+    original = data.get('url')
     custom_id = data.get('custom_id')
-
-    if not url:
-        return jsonify(message='"url" является обязательным полем!'), 400
+    custom_id = custom_id.strip() if custom_id else ''
 
     if custom_id:
         if not custom_id.isalnum() or len(custom_id) > 16:
@@ -32,16 +30,11 @@ def create_short_link():
     else:
         short = get_unique_short_id()
 
-    new_link = URLMap(original=url, short=short)
-    db.session.add(new_link)
+    url_map = URLMap(original=original, short=short)
+    db.session.add(url_map)
     db.session.commit()
 
-    return jsonify(url=url, short_link=request.host_url + short), 201
-
-
-@api_bp.route('/id/<string:short_id>/', methods=['GET'])
-def get_original_url(short_id):
-    url_map = URLMap.query.filter_by(short=short_id).first()
-    if not url_map:
-        return jsonify(message='Указанный id не найден'), 404
-    return jsonify(url=url_map.original), 200
+    return jsonify(
+        url=url_map.original,
+        short_link=request.host_url + url_map.short
+    ), 201
