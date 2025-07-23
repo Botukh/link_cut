@@ -3,7 +3,7 @@ import aiohttp
 import asyncio
 
 from flask import (
-    Blueprint, render_template, request, redirect, flash, url_for
+    render_template, request, redirect, flash, url_for
 )
 from werkzeug.utils import secure_filename
 from urllib.parse import quote
@@ -89,9 +89,15 @@ def file_upload_view():
         async def upload_file():
             async with aiohttp.ClientSession() as session:
                 params = {'path': disk_path, 'overwrite': 'true'}
-                async with session.get(UPLOAD_ENDPOINT, headers=headers, params=params) as resp:
+                async with session.get(
+                    UPLOAD_ENDPOINT,
+                    headers=headers,
+                    params=params
+                ) as resp:
                     if resp.status != 200:
-                        flash('Не удалось получить ссылку для загрузки.', 'danger')
+                        flash(
+                            'Не удалось получить ссылку для загрузки.',
+                            'danger')
                         return None
                     upload_info = await resp.json()
                     href = upload_info.get('href')
@@ -102,7 +108,10 @@ def file_upload_view():
                 with open(tmp_path, 'rb') as f:
                     async with session.put(href, data=f) as put_resp:
                         if put_resp.status not in (201, 202):
-                            flash('Ошибка загрузки файла на Яндекс.Диск.', 'danger')
+                            flash(
+                                'Ошибка загрузки файла на Яндекс.Диск.',
+                                'danger'
+                            )
                             return None
 
                 publish_url = f'{PUBLISH_ENDPOINT}?path={quote(disk_path)}'
@@ -111,7 +120,10 @@ def file_upload_view():
                 meta_url = f'{METADATA_ENDPOINT}?path={quote(disk_path)}'
                 async with session.get(meta_url, headers=headers) as meta_resp:
                     if meta_resp.status != 200:
-                        flash('Не удалось получить метаданные файла.', 'warning')
+                        flash(
+                            'Не удалось получить метаданные файла.',
+                            'warning'
+                        )
                         return None
                     meta_data = await meta_resp.json()
                     return meta_data.get('public_url', disk_path)
