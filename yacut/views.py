@@ -97,7 +97,7 @@ def file_upload_view():
                 uploaded.append((filename, short_id, public_url))
         db.session.commit()
         return render_template('files.html', form=form, uploaded=uploaded)
-    return render_template('files.html', form=form)
+    return render_template('files.html', form=form, uploaded=uploaded)
 
 
 @app.route('/<string:short>')
