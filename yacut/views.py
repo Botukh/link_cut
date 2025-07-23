@@ -2,7 +2,7 @@ import asyncio
 import random
 import string
 from flask import (
-    render_template, request, redirect, flash,
+    render_template, request, redirect, flash
 )
 from werkzeug.utils import secure_filename
 
@@ -61,22 +61,29 @@ def file_upload_view():
     if request.method == 'POST':
         files = request.files.getlist('files')
         valid_files = [f for f in files if f.filename and f.filename.strip()]
-
         if not valid_files:
             flash('Нет файлов для загрузки', 'danger')
             return render_template('files.html', form=form)
-
         try:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            public_urls = loop.run_until_complete(
-                async_upload_files_to_yadisk(valid_files)
-            )
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    import concurrent.futures
+                    with concurrent.futures.ThreadPoolExecutor() as executor:
+                        future = executor.submit(
+                            asyncio.run, async_upload_files_to_yadisk(
+                                valid_files))
+                        public_urls = future.result()
+                else:
+                    public_urls = loop.run_until_complete(
+                        async_upload_files_to_yadisk(valid_files))
+            except RuntimeError:
+                public_urls = asyncio.run(
+                    async_upload_files_to_yadisk(valid_files)
+                )
         except Exception as e:
             flash(f'Ошибка загрузки файлов: {e}', 'danger')
             return render_template('files.html', form=form)
-        finally:
-            loop.close()
         for file, public_url in zip(valid_files, public_urls):
             if public_url:
                 filename = secure_filename(file.filename)
@@ -101,4 +108,4 @@ def redirect_view(short):
     file_link = FileMap.query.filter_by(short=short).first()
     if file_link:
         return redirect(file_link.ydisk_path)
-    return render_template('errors/404.html'), 404
+    return render_template('404.html'), 404

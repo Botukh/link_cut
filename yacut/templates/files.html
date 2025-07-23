@@ -19,6 +19,16 @@
         </div>
       </form>
 
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ 'danger' if category == 'danger' else 'success' }} mt-3">
+              {{ message|safe }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
       {% if uploaded %}
       <div class="alert alert-info text-center mt-4">
         <h5 class="mb-3">Файлы успешно загружены:</h5>
@@ -26,8 +36,8 @@
           {% for filename, short_id, _ in uploaded %}
           <li class="mb-2">
             <strong>{{ filename }}</strong><br>
-            <a href="{{ url_for('redirect_view', short=short_id) }}">
-              {{ request.host_url ~ short_id }}
+            <a href="{{ request.host_url.rstrip('/') }}/{{ short_id }}">
+              {{ request.host_url.rstrip('/') }}/{{ short_id }}
             </a>
           </li>
           {% endfor %}
