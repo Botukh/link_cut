@@ -1,16 +1,16 @@
-import os
 import asyncio
+import os
+import random
+import string
 
 from flask import (
     render_template, request, redirect, flash, url_for
 )
-from werkzeug.utils import secure_filename
 
-from . import main_bp
-from .forms import URLForm, FileUploadForm
+from . import app
+from .forms import URLMapForm
 from .models import db, URLMap, FileMap
-from .utils import get_unique_short_id
-from .ydisk import upload_file_to_disk, publish_and_get_public_url
+from .ydisk import async_upload_files_to_yadisk
 
 
 DISK_TOKEN = os.getenv('DISK_TOKEN')
@@ -21,10 +21,20 @@ PUBLISH_ENDPOINT = f'{API_HOST}/{API_VERSION}/resources/publish'
 METADATA_ENDPOINT = f'{API_HOST}/{API_VERSION}/resources'
 
 
-@main_bp.route('/', methods=['GET', 'POST'])
+CHARS = string.ascii_letters + string.digits
+
+
+def get_unique_short_id(length=6):
+    while True:
+        short_id = ''.join(random.choices(CHARS, k=length))
+        if not URLMap.query.filter_by(short=short_id).first():
+            return short_id
+
+
+@app.route('/', methods=['GET', 'POST'])
 def index_view():
-    form = URLForm()
-    short_url = None
+    form = URLMapForm()
+    short_id = None
 
     if form.validate_on_submit():
         original_link = form.original_link.data
@@ -49,56 +59,39 @@ def index_view():
         db.session.add(new_link)
         db.session.commit()
 
-        short_url = request.host_url + custom_id
+        short_id = request.host_url + custom_id
         flash(
-            f'Ссылка создана: <a href="{short_url}">{short_url}</a>',
+            f'Ссылка создана: <a href="{short_id}">{short_id}</a>',
             'success'
         )
 
-    return render_template('index.html', form=form, short_url=short_url)
+    return render_template('index.html', form=form, short_id=short_id)
 
 
-@main_bp.route('/files', methods=['GET', 'POST'])
+@app.route('/files', methods=['GET', 'POST'])
 def file_upload_view():
-    form = FileUploadForm()
-    uploaded = FileMap.query.order_by(FileMap.id.desc()).all()
+    if request.method == 'POST':
+        files = request.files.getlist('files')
 
-    if request.method == 'POST' and form.validate_on_submit():
-        files = form.files.data
-        if not files:
-            flash('Файлы не выбраны', 'danger')
-            return render_template('files.html', form=form, uploaded=uploaded)
+        if not files or not any(f.filename for f in files):
+            flash('Нет файлов для загрузки', 'danger')
+            return redirect(request.url)
 
-        async def process_files():
-            uploaded_local = []
-            for file in files:
-                filename = secure_filename(file.filename)
-                ydisk_path = f'disk:/yacut/{filename}'
-                file_data = file.read()
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            public_urls = loop.run_until_complete(
+                async_upload_files_to_yadisk(files))
+        except Exception as e:
+            flash(f'Ошибка загрузки файлов: {e}', 'danger')
+            return redirect(request.url)
 
-                await upload_file_to_disk(file_data, ydisk_path)
-                public_url = await publish_and_get_public_url(ydisk_path)
+        return render_template('files.html', public_urls=public_urls)
 
-                short_id = get_unique_short_id()
-                file_entry = FileMap(
-                    filename=filename, ydisk_path=ydisk_path, short=short_id)
-                db.session.add(file_entry)
-                uploaded_local.append((filename, short_id, public_url))
-
-            db.session.commit()
-            return uploaded_local
-
-        uploaded_files = asyncio.run(process_files())
-
-        if uploaded_files:
-            flash('Файлы успешно загружены', 'success')
-            return render_template(
-                'files.html', form=form, uploaded=uploaded_files)
-
-    return render_template('files.html', form=form, uploaded=uploaded)
+    return render_template('files.html')
 
 
-@main_bp.route('/<string:short>')
+@app.route('/<string:short>')
 def redirect_view(short):
     link = URLMap.query.filter_by(short=short).first()
     if link:
@@ -109,4 +102,4 @@ def redirect_view(short):
         return redirect(file_link.ydisk_path)
 
     flash('Ссылка не найдена.', 'danger')
-    return redirect(url_for('main_bp.index_view'))
+    return redirect(url_for('index_view'))

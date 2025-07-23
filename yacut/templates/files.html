@@ -9,7 +9,7 @@
 
   <div class="row justify-content-center">
     <div class="col-md-6">
-      <form method="POST" action="{{ url_for('main.file_upload_view') }}" enctype="multipart/form-data">
+      <form method="POST" action="{{ url_for('file_upload_view') }}" enctype="multipart/form-data">
         <div class="form-group mb-3">
           <input type="file" name="files" class="form-control mb-3" multiple required>
         </div>
@@ -23,11 +23,11 @@
       <div class="alert alert-info text-center mt-4">
         <h5 class="mb-3">Файлы успешно загружены:</h5>
         <ul class="list-unstyled">
-          {% for filename, short_id in uploaded %}
+          {% for filename, short_id, _ in uploaded %}
           <li class="mb-2">
             <strong>{{ filename }}</strong><br>
-            <a href="{{ url_for('main.download_file_redirect', short=short_id) }}" target="_blank">
-              {{ request.host_url ~ 'f/' ~ short_id }}
+            <a href="{{ url_for('redirect_view', short=short_id) }}">
+              {{ request.host_url ~ short_id }}
             </a>
           </li>
           {% endfor %}

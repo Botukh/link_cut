@@ -1,42 +1,62 @@
+import asyncio
 import aiohttp
-import os
+from urllib.parse import quote
+
+from . import app
+
+API_HOST = 'https://cloud-api.yandex.net'
+API_VERSION = '/v1'
+DISK_TOKEN = app.config['DISK_TOKEN']
+AUTH_HEADERS = {'Authorization': f'OAuth {DISK_TOKEN}'}
 
 
-DISK_TOKEN = os.getenv('DISK_TOKEN')
-BASE_URL = 'https://cloud-api.yandex.net/v1/disk/resources'
-
-HEADERS = {'Authorization': f'OAuth {DISK_TOKEN}'}
-
-
-async def upload_file_to_disk(file_data, ydisk_path):
-
-    upload_url = f"{BASE_URL}/upload"
-    params = {'path': ydisk_path, 'overwrite': 'true'}
-
-    async with aiohttp.ClientSession(headers=HEADERS) as session:
-        async with session.get(upload_url, params=params) as resp:
-            if resp.status != 200:
-                raise Exception(
-                    f"Ошибка получения upload_url: {await resp.text()}")
-            upload_link = (await resp.json())['href']
-
-        async with session.put(upload_link, data=file_data) as upload_resp:
-            if upload_resp.status not in (200, 201):
-                raise Exception(f"Ошибка загрузки: {await upload_resp.text()}")
+async def async_upload_files_to_yadisk(files):
+    if not files:
+        return []
+    tasks = []
+    async with aiohttp.ClientSession() as session:
+        for file in files:
+            tasks.append(
+                asyncio.ensure_future(
+                    upload_file_and_get_public_url(session, file)
+                )
+            )
+        return await asyncio.gather(*tasks)
 
 
-async def publish_and_get_public_url(ydisk_path):
+async def upload_file_and_get_public_url(session, file):
+    filename = quote(file.filename)
+    upload_url = f'{API_HOST}{API_VERSION}/disk/resources/upload'
+    params = {'path': f'app:/{filename}', 'overwrite': 'true'}
 
-    async with aiohttp.ClientSession(headers=HEADERS) as session:
-        params = {'path': ydisk_path}
-        publish_url = f"{BASE_URL}/publish"
+    async with session.get(
+        upload_url,
+        headers=AUTH_HEADERS,
+        params=params
+    ) as resp:
+        resp.raise_for_status()
+        data = await resp.json()
+        href = data['href']
 
-        async with session.put(publish_url, params=params) as pub_resp:
-            if pub_resp.status not in (200, 201, 409):
-                raise Exception(f"Ошибка публикации: {await pub_resp.text()}")
+    async with session.put(href, data=file.read()) as resp:
+        resp.raise_for_status()
 
-        async with session.get(BASE_URL, params=params) as info_resp:
-            if info_resp.status != 200:
-                raise Exception(
-                    f"Ошибка получения info: {await info_resp.text()}")
-            return (await info_resp.json()).get('public_url')
+    publish_url = f'{API_HOST}{API_VERSION}/disk/resources/publish'
+    publish_params = {'path': f'app:/{filename}'}
+
+    async with session.put(
+        publish_url,
+        headers=AUTH_HEADERS,
+        params=publish_params
+    ) as resp:
+        resp.raise_for_status()
+
+    meta_url = f'{API_HOST}{API_VERSION}/disk/resources'
+    async with session.get(
+        meta_url,
+        headers=AUTH_HEADERS,
+        params=publish_params
+    ) as resp:
+        resp.raise_for_status()
+        data = await resp.json()
+        return data.get('public_url')

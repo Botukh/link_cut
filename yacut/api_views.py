@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 
 from .models import db, URLMap
-from .utils import get_unique_short_id
+from .views import get_unique_short_id
 
 api_bp = Blueprint('api_bp', __name__, url_prefix='/api')
 

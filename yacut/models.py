@@ -14,8 +14,5 @@ class URLMap(db.Model):
 class FileMap(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     filename = db.Column(db.String(255), nullable=False)
-    ydisk_path = db.Column(db.String(1024), nullable=False)
-    short = db.Column(db.String(16), unique=True, index=True, nullable=False)
-    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(
-        timezone.utc)
-    )
+    short = db.Column(db.String(16), unique=True, nullable=False)
+    original_url = db.Column(db.String(512), nullable=False)

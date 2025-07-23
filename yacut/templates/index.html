@@ -9,7 +9,7 @@
     Создайте короткую ссылку автоматически или предложите свой вариант
   </p>
 
-  <form method="POST" action="{{ url_for('main.index_view') }}">
+  <form method="POST" action="{{ url_for('index_view') }}">
     {{ form.hidden_tag() }}
 
     <div class="form-group">
@@ -29,14 +29,14 @@
     <input type="submit" class="btn btn-primary" value="Создать">
   </form>
 
-  {% if short_url %}
+  {% if short_id %}
   <div class="container">
     <div class="row">
       <div class="col-sm"></div>
       <div class="col-sm">
         <div class="alert alert-info text-center mt-4">
           <h5 class="mb-2">Ваша короткая ссылка:</h5>
-          <a href="{{ short_url }}" target="_blank">{{ short_url }}</a>
+          <a href="{{ short_id }}" target="_blank">{{ short_id }}</a>
         </div>
       </div>
       <div class="col-sm"></div>
