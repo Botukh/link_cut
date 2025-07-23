@@ -4,7 +4,6 @@ import string
 from flask import (
     render_template, request, redirect, flash
 )
-from werkzeug.utils import secure_filename
 
 from . import app, db
 from .forms import URLMapForm, FileUploadForm
