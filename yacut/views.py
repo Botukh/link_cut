@@ -86,7 +86,7 @@ def file_upload_view():
             return render_template('files.html', form=form)
         for file, public_url in zip(valid_files, public_urls):
             if public_url:
-                filename = secure_filename(file.filename)
+                filename = file.filename
                 short_id = get_unique_short_id()
                 file_record = FileMap(
                     filename=filename,
