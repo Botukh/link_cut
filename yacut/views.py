@@ -91,7 +91,7 @@ def file_upload_view():
                 file_record = FileMap(
                     filename=filename,
                     short=short_id,
-                    ydisk_path=public_url
+                    original_url=public_url
                 )
                 db.session.add(file_record)
                 uploaded.append((filename, short_id, public_url))
@@ -107,5 +107,5 @@ def redirect_view(short):
         return redirect(link.original)
     file_link = FileMap.query.filter_by(short=short).first()
     if file_link:
-        return redirect(file_link.ydisk_path)
+        return redirect(file_link.original_url)
     return render_template('errors/404.html'), 404
