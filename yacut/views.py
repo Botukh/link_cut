@@ -2,12 +2,13 @@ import asyncio
 from flask import (
     Blueprint, render_template, flash, redirect, request
 )
+from urllib.parse import quote
 from werkzeug.utils import secure_filename
 
 from .forms import URLForm
 from .models import URLMap, FileMap
 from .utils import get_unique_short_id
-from .ydisk import upload_file_to_disk
+from .ydisk import publish_and_get_public_url, upload_file_to_disk
 from . import db
 
 main_bp = Blueprint('main', __name__)
@@ -62,26 +63,30 @@ def file_upload_view():
 
         async def process_files():
             tasks = []
+
             for file in files:
                 if file.filename == '':
                     continue
                 filename = secure_filename(file.filename)
-                ydisk_path = f"app_uploads/{filename}"
+                ydisk_path = f"/Приложения/Uploader/{filename}"
                 short_id = get_unique_short_id()
                 file_data = file.read()
 
                 async def handle_upload():
                     try:
                         await upload_file_to_disk(file_data, ydisk_path)
+                        public_url = await publish_and_get_public_url(
+                            ydisk_path)
                         file_entry = FileMap(
                             filename=filename,
                             ydisk_path=ydisk_path,
                             short=short_id
                         )
                         db.session.add(file_entry)
-                        uploaded.append((filename, short_id))
+                        uploaded.append((filename, short_id, public_url))
                     except Exception as e:
-                        flash(f"Ошибка загрузки {filename}: {str(e)}", "danger")
+                        flash(
+                            f"Ошибка загрузки {filename}: {str(e)}", "danger")
 
                 tasks.append(handle_upload())
 
@@ -91,9 +96,18 @@ def file_upload_view():
 
         if uploaded:
             db.session.commit()
-            flash("Загрузка завершена", "success")
+            flash("Файлы успешно загружены", "success")
 
     return render_template('files.html', uploaded=uploaded)
+
+
+@main_bp.route('/f/<string:short>')
+def download_file_redirect(short):
+    file_entry = FileMap.query.filter_by(short=short).first()
+    if not file_entry:
+        return render_template('errors/404.html'), 404
+
+    return redirect(f'https://disk.yandex.ru/d/{quote(file_entry.ydisk_path)}')
 
 
 @main_bp.route('/<string:short>')
@@ -102,11 +116,3 @@ def redirect_view(short):
     if link:
         return redirect(link.original)
     return render_template('errors/404.html'), 404
-
-
-@main_bp.route('/f/<string:short>')
-def download_file_redirect(short):
-    file_entry = FileMap.query.filter_by(short=short).first()
-    if not file_entry:
-        return render_template('errors/404.html'), 404
-    return redirect(f"https://disk.yandex.ru/d/{file_entry.ydisk_path}")
