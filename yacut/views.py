@@ -108,4 +108,4 @@ def redirect_view(short):
     file_link = FileMap.query.filter_by(short=short).first()
     if file_link:
         return redirect(file_link.ydisk_path)
-    return render_template('404.html'), 404
+    return render_template('errors/404.html'), 404
