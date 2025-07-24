@@ -13,7 +13,6 @@
 
 ```
 git clone https://github.com/Botukh/async-yacut
-```
 cd yacut
 ```
 Cоздать и активировать виртуальное окружение:
