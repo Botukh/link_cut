@@ -7,7 +7,7 @@ from . import app
 
 
 class URLMapForm(FlaskForm):
-    original_url = StringField(
+    original = StringField(
         app.config['LONG_LINK_LABEL'],
         validators=[DataRequired(), URL(message=app.config['INCORRECT_URL'])]
     )

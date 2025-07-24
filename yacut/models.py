@@ -11,7 +11,7 @@ from .exceptions import URLMapException
 
 class URLMap(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    original_url = db.Column(db.String(2048), nullable=False)
+    original = db.Column(db.String(2048), nullable=False)
     short = db.Column(
         db.String(
             app.config['SHORT_LENGTH']
@@ -26,7 +26,7 @@ class URLMap(db.Model):
     CHARS = string.ascii_letters + string.digits
 
     @staticmethod
-    def create_url_map(original_url, custom_short=None):
+    def create_url_map(original, custom_short=None):
         if custom_short:
             custom_short = custom_short.strip()
             if not URLMap._validate_short(custom_short):
@@ -36,7 +36,7 @@ class URLMap(db.Model):
             short = custom_short
         else:
             short = URLMap._generate_unique_short()
-        url_map = URLMap(original_url=original_url, short=short)
+        url_map = URLMap(original=original, short=short)
         db.session.add(url_map)
         db.session.commit()
         return url_map
@@ -77,7 +77,7 @@ class URLMap(db.Model):
         for filename, public_url in file_data_list:
             if public_url:
                 short = URLMap._generate_unique_short()
-                url_map = URLMap(original_url=public_url, short=short)
+                url_map = URLMap(original=public_url, short=short)
                 db.session.add(url_map)
                 created_records.append({
                     'filename': filename,

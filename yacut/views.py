@@ -17,12 +17,12 @@ def index_view():
 
     if not form.validate_on_submit():
         return render_template('index.html', form=form)
-    original_url = form.original_url.data
+    original = form.original_url.data
     custom_short = (
         form.custom_short.data.strip() if form.custom_short.data else None
     )
     try:
-        url_map = URLMap.create_url_map(original_url, custom_short)
+        url_map = URLMap.create_url_map(original, custom_short)
         return render_template(
             'index.html',
             form=form,
@@ -68,5 +68,5 @@ def file_upload_view():
 def redirect_view(short):
     url_map = URLMap.get_by_short(short)
     if url_map:
-        return redirect(url_map.original_url)
+        return redirect(url_map.original)
     return render_template('errors/404.html'), HTTPStatus.NOT_FOUND
