@@ -21,9 +21,9 @@ def create_short_url():
             HTTPStatus.BAD_REQUEST
         )
     original = data.get('original')
-    custom_short = data.get('custom_short', '').strip()
+    custom_id = data.get('custom_id', '').strip()
     try:
-        url_map = URLMap.create_url_map(original, custom_short or None)
+        url_map = URLMap.create_url_map(original, custom_id or None)
         return jsonify(
             original=url_map.original,
             short=url_map.get_short_url()
