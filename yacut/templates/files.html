@@ -37,7 +37,6 @@
             {% for file in uploaded %}
               <li class="list-group-item">
                 <strong>{{ file.filename }}</strong><br>
-                <a href="{{ file.public_url }}">{{ file.public_url }}</a><br>
                 Короткая ссылка: <a href="{{ file.short_url}}">{{ file.short_url }}</a>
               </li>
             {% endfor %}

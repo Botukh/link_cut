@@ -52,13 +52,13 @@ class URLMap(db.Model):
             return False
         if not re.match(r'^[a-zA-Z0-9]+$', short):
             return False
-        if short.lower() == 'files':
-            return False
         return True
 
     @staticmethod
     def _short_exists(short):
-        return URLMap.query.filter_by(short=short).first() is not None
+        return short.lower() == 'files' or URLMap.query.filter_by(
+            short=short
+        ).first() is not None
 
     @staticmethod
     def _generate_unique_short(length=None):
