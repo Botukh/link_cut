@@ -15,11 +15,15 @@ from .exceptions import URLMapException
 def index_view():
     form = URLMapForm()
 
+    if request.method == 'GET':
+        return render_template('index.html', form=form)
+
     if not form.validate_on_submit():
         return render_template('index.html', form=form)
-    original = form.original_url.data
+
+    original = form.original_link.data
     custom_short = (
-        form.custom_short.data.strip() if form.custom_short.data else None
+        form.custom_id.data.strip() if form.custom_id.data else None
     )
     try:
         url_map = URLMap.create_url_map(original, custom_short)

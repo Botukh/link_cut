@@ -15,18 +15,18 @@ def create_short_url():
             app.config['MISSING_REQUEST_BODY'],
             HTTPStatus.BAD_REQUEST
         )
-    if 'original' not in data:
+    if 'url' not in data:
         raise URLMapException(
             app.config['URL_FIELD_REQUIRED'],
             HTTPStatus.BAD_REQUEST
         )
-    original = data.get('original')
+    original = data.get('url')
     custom_id = data.get('custom_id', '').strip()
     try:
         url_map = URLMap.create_url_map(original, custom_id or None)
         return jsonify(
-            original=url_map.original,
-            short=url_map.get_short_url()
+            url=url_map.original,
+            short_link=url_map.get_short_url()
         ), HTTPStatus.CREATED
     except URLMapException as e:
         raise e
@@ -37,4 +37,4 @@ def get_original_url(short):
     url_map = URLMap.get_by_short(short)
     if not url_map:
         raise URLMapException(app.config['ID_NOT_FOUND'], HTTPStatus.NOT_FOUND)
-    return jsonify(original=url_map.original), HTTPStatus.OK
+    return jsonify(url=url_map.original), HTTPStatus.OK

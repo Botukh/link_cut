@@ -48,9 +48,13 @@ class URLMap(db.Model):
     @staticmethod
     def _validate_short(short):
         import re
-        return (re.match(app.config['SHORT_CHARS_PATTERN'], short) and
-                len(short) <= app.config['SHORT_LENGTH'] and
-                short.lower() != 'files')
+        if not short or len(short) > app.config['SHORT_LENGTH']:
+            return False
+        if not re.match(r'^[a-zA-Z0-9]+$', short):
+            return False
+        if short.lower() == 'files':
+            return False
+        return True
 
     @staticmethod
     def _short_exists(short):
@@ -62,7 +66,7 @@ class URLMap(db.Model):
             length = app.config['SHORT_ID_DEFAULT_LENGTH']
         for _ in range(app.config['MAX_RETRY_ATTEMPTS']):
             short = ''.join(random.choices(URLMap.CHARS, k=length))
-            if not URLMap._short_exists(short):
+            if not URLMap._short_exists(short) and short.lower() != 'files':
                 return short
         raise URLMapException(
             'Не удалось сгенерировать уникальную короткую ссылку'
@@ -85,4 +89,8 @@ class URLMap(db.Model):
                     'public_url': public_url
                 })
         db.session.commit()
+        for record in created_records:
+            url_map = URLMap.query.filter_by(short=record['short']).first()
+            if url_map:
+                record['short_url'] = url_map.get_short_url()
         return created_records
