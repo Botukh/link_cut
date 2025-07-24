@@ -1,15 +1,21 @@
-### Как запустить проект Yacut:
+### YaCut — это веб-приложение на Flask, которое позволяет:
+
+- сокращать длинные ссылки,
+
+- загружать файлы и получать короткие публичные ссылки на них,
+
+- работать через веб-интерфейс или API.
+
+
+## Как запустить проект Yacut:
 
 Клонировать репозиторий и перейти в него в командной строке:
 
 ```
-git clone 
-```
-
+git clone https://github.com/Botukh/async-yacut
 ```
 cd yacut
 ```
-
 Cоздать и активировать виртуальное окружение:
 
 ```
@@ -45,6 +51,7 @@ FLASK_APP=yacut
 FLASK_ENV=development
 SECRET_KEY=your_secret_key
 DB=sqlite:///db.sqlite3
+DISK_TOKEN=your_yandex_disk_oauth_token
 ```
 
 Создать базу данных и применить миграции:
@@ -58,3 +65,18 @@ flask db upgrade
 ```
 flask run
 ```
+После запуска перейдите в браузере по адресу: http://127.0.0.1:5000/
+
+## Технологический стэк:
+
+ - Python
+ - Flask
+ - SQLAlchemy
+ - Flask-Migrate
+ - Flask-WTF
+ - Alembic
+ - aiohttp (асинхронная загрузка файлов)
+ - Bootstrap 5 (UI)
+ - SQLite (по умолчанию)
+
+  Разработка      | *Ботух Юлия*     | [Telegram](https://t.me/botuh) |

@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Загрузить файл - YaCut{% endblock %}
+{% block title %}Загрузка файлов - YaCut{% endblock %}
 
 {% block content %}
 <section class="container my-5 px-4">
@@ -8,41 +8,41 @@
   <p class="text-center my-4">Загрузите файлы и получите на них короткие ссылки</p>
 
   <div class="row justify-content-center">
-    <div class="col-md-6">
-      <form method="POST" action="{{ url_for('file_upload_view') }}" enctype="multipart/form-data">
-        <div class="form-group mb-3">
-          <input type="file" name="files" class="form-control mb-3" multiple required>
+    <div class="col-md-8">
+      <form method="POST" enctype="multipart/form-data" action="{{ files_url }}">
+        {{ form.hidden_tag() }}
+        <div class="mb-3">
+          {{ form.files.label(class="form-label") }}
+          {{ form.files(class="form-control", multiple=true) }}
         </div>
-
-        <div class="text-center">
-          <input type="submit" class="btn btn-primary" value="Загрузить">
-        </div>
+        <div class="text-center"> 
+          <input type="submit" class="btn btn-primary" value="Загрузить"> 
+        </div> 
       </form>
 
-      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% with messages = get_flashed_messages() %}
         {% if messages %}
-          {% for category, message in messages %}
-            <div class="alert alert-{{ 'danger' if category == 'danger' else 'success' }} mt-3">
-              {{ message|safe }}
-            </div>
-          {% endfor %}
+          <ul class="alert alert-danger mt-4">
+            {% for message in messages %}
+              <li>{{ message }}</li>
+            {% endfor %}
+          </ul>
         {% endif %}
       {% endwith %}
 
       {% if uploaded %}
-      <div class="alert alert-info text-center mt-4">
-        <h5 class="mb-3">Файлы успешно загружены:</h5>
-        <ul class="list-unstyled">
-          {% for filename, short_id, _ in uploaded %}
-          <li class="mb-2">
-            <strong>{{ filename }}</strong><br>
-            <a href="{{ request.host_url.rstrip('/') }}/{{ short_id }}">
-              {{ request.host_url.rstrip('/') }}/{{ short_id }}
-            </a>
-          </li>
-          {% endfor %}
-        </ul>
-      </div>
+        <div class="mt-5">
+          <h5>Загруженные файлы:</h5>
+          <ul class="list-group">
+            {% for file in uploaded %}
+              <li class="list-group-item">
+                <strong>{{ file.filename }}</strong><br>
+                <a href="{{ file.public_url }}">{{ file.public_url }}</a><br>
+                Короткая ссылка: <a href="{{ file.short }}">{{ file.short }}</a>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
       {% endif %}
     </div>
   </div>
