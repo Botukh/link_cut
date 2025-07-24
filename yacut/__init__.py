@@ -16,4 +16,4 @@ def handle_url_map_exception(error):
     return jsonify({'message': error.message}), error.status_code
 
 
-from . import api_views, error_handlers, forms, views, ydisk, forms
+from . import api_views, error_handlers, forms, views, ydisk, forms, exceptions
