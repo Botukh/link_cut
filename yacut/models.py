@@ -48,7 +48,7 @@ class URLMap(db.Model):
                 raise ValidationError(INVALID_SHORT_NAME)
             if not re.match(SHORT_CHARS_PATTERN, custom_short):
                 raise ValidationError(INVALID_SHORT_NAME)
-            if URLMap.get(custom_short):
+            if custom_short.lower() == 'files' or URLMap.get(custom_short):
                 raise ValidationError(SHORT_LINK_EXISTS)
             short = custom_short
         else:
@@ -75,10 +75,12 @@ class URLMap(db.Model):
 
     @staticmethod
     def batch_create(file_data_list):
-        return [
-            {
-                'filename': filename,
-                'short_url': URLMap.create(url).get_short_url()
-            }
-            for filename, url in file_data_list if url
-        ]
+        created_records = []
+        for filename, url in file_data_list:
+            if url:
+                url_map = URLMap.create(url)
+                created_records.append({
+                    'filename': filename,
+                    'short_url': url_map.get_short_url()
+                })
+        return created_records
