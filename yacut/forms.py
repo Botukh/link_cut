@@ -14,9 +14,9 @@ ONLY_LETTERS_NUMBERS = 'Только буквы и цифры'
 CHOOSE_FILES = 'Выберите файлы'
 NO_FILES_TO_UPLOAD = 'Нет файлов для загрузки'
 ALLOWED_EXTENSIONS = ['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx']
-INVALID_FILE_TYPE = f'Недопустимый тип файла. Разрешены: {", ".join(
-    ALLOWED_EXTENSIONS
-)}'
+INVALID_FILE_TYPE = ('Недопустимый тип файла.'
+                     f'Разрешены: {", ".join(ALLOWED_EXTENSIONS)}'
+                     )
 SUBMIT_BUTTON = 'Создать'
 UPLOAD_BUTTON = 'Загрузить'
 
