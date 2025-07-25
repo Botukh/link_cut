@@ -2,8 +2,10 @@ import os
 
 SHORT_LENGTH = 16
 SHORT_CHARS_PATTERN = r'^[a-zA-Z0-9]+$'
+
 MAX_RETRY_ATTEMPTS = 100
 SHORT_ID_DEFAULT_LENGTH = 6
+REDIRECT_VIEW_ENDPOINT = 'redirect_view'
 
 
 class Config:

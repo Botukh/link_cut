@@ -1,3 +1,4 @@
+import asyncio
 import aiohttp
 from urllib.parse import quote
 
@@ -10,6 +11,10 @@ DOWNLOAD_ENDPOINT = f'{API_HOST}{API_VERSION}/disk/resources/download'
 
 DISK_TOKEN = app.config['DISK_TOKEN']
 AUTH_HEADERS = {'Authorization': f'OAuth {DISK_TOKEN}'}
+
+
+def upload_files_and_get_urls(files):
+    return asyncio.run(async_upload_files_to_yadisk(files))
 
 
 async def async_upload_files_to_yadisk(files):

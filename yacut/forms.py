@@ -1,8 +1,10 @@
 from flask_wtf import FlaskForm
+from flask_wtf.file import FileAllowed
 from wtforms import StringField, MultipleFileField
 from wtforms.validators import DataRequired, Length, Regexp, URL, Optional
 
 from settings import SHORT_LENGTH, SHORT_CHARS_PATTERN
+
 
 LONG_LINK_LABEL = 'Длинная ссылка'
 URL_FIELD_REQUIRED = '"url" является обязательным полем!'
@@ -11,6 +13,8 @@ SHORT_LINK_LABEL = 'Короткая ссылка (по желанию)'
 ONLY_LETTERS_NUMBERS = 'Только буквы и цифры'
 CHOOSE_FILES = 'Выберите файлы'
 NO_FILES_TO_UPLOAD = 'Нет файлов для загрузки'
+ALLOWED_EXTENSIONS = ['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx']
+INVALID_FILE_TYPE = 'Недопустимый тип файла'
 
 
 class URLMapForm(FlaskForm):
@@ -32,6 +36,10 @@ class URLMapForm(FlaskForm):
 
 
 class FileUploadForm(FlaskForm):
-    files = MultipleFileField(CHOOSE_FILES,
-                              validators=[DataRequired(
-                                  message=NO_FILES_TO_UPLOAD)])
+    files = MultipleFileField(
+        CHOOSE_FILES,
+        validators=[
+            DataRequired(message=NO_FILES_TO_UPLOAD),
+            FileAllowed(ALLOWED_EXTENSIONS, message=INVALID_FILE_TYPE)
+        ]
+    )
