@@ -1,21 +1,9 @@
 from http import HTTPStatus
 
-from flask import jsonify, render_template, request
+from flask import jsonify, render_template
 
 from . import app, db
 from .exceptions import APIError
-from .models import URLMapValidationError
-
-
-@app.errorhandler(URLMapValidationError)
-def handle_validation_error(error):
-    if request.path.startswith('/api/'):
-        return jsonify(message=error.message), HTTPStatus.BAD_REQUEST
-    else:
-        return render_template(
-            'errors/400.html',
-            message=error.message
-        ), HTTPStatus.BAD_REQUEST
 
 
 @app.errorhandler(APIError)

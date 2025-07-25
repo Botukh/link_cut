@@ -9,17 +9,16 @@ from . import db
 from settings import (
     SHORT_LENGTH,
     SHORT_CHARS_PATTERN,
-    MAX_RETRY_ATTEMPTS,
-    SHORT_ID_DEFAULT_LENGTH,
+    MAX_SHORT_GENERATION_ATTEMPTS,
+    SHORT_DEFAULT_LENGTH,
     REDIRECT_VIEW_ENDPOINT
 )
-
 
 ORIGINAL_URL_MAX_LENGTH = 2048
 CHARS = string.ascii_letters + string.digits
 GENERATION_ERROR_MESSAGE = (
-    f'Не удалось сгенерировать уникальную короткую ссылку'
-    f'за {MAX_RETRY_ATTEMPTS} попыток'
+    f'Не удалось сгенерировать уникальную короткую ссылку '
+    f'за {MAX_SHORT_GENERATION_ATTEMPTS} попыток'
 )
 INVALID_ORIGINAL_NAME = 'URL слишком длинный'
 INVALID_SHORT_NAME = 'Указано недопустимое имя для короткой ссылки'
@@ -69,8 +68,8 @@ class URLMap(db.Model):
 
     @staticmethod
     def _generate_unique_short():
-        for _ in range(MAX_RETRY_ATTEMPTS):
-            short = ''.join(random.choices(CHARS, k=SHORT_ID_DEFAULT_LENGTH))
+        for _ in range(MAX_SHORT_GENERATION_ATTEMPTS):
+            short = ''.join(random.choices(CHARS, k=SHORT_DEFAULT_LENGTH))
             if not URLMap.get(short) and short.lower() != 'files':
                 return short
         raise Exception(GENERATION_ERROR_MESSAGE)
