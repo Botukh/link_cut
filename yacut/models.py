@@ -1,21 +1,36 @@
 import string
 import random
+import re
 from datetime import datetime, timezone
 
 from flask import url_for
 
 from . import db
-from . import app
-from .exceptions import URLMapException
+from .exceptions import ValidationError
+from settings import (
+    SHORT_LENGTH,
+    SHORT_CHARS_PATTERN,
+    MAX_RETRY_ATTEMPTS,
+    SHORT_ID_DEFAULT_LENGTH
+)
+
+
+ORIGINAL_URL_MAX_LENGTH = 2048
+CHARS = string.ascii_letters + string.digits
+GENERATION_ERROR_MESSAGE = (
+    'Не удалось сгенерировать уникальную короткую ссылку'
+    f'за {MAX_RETRY_ATTEMPTS} попыток'
+)
+INVALID_ORIGINAL_NAME = 'URL слишком длинный'
+INVALID_SHORT_NAME = 'Указано недопустимое имя для короткой ссылки'
+SHORT_LINK_EXISTS = 'Предложенный вариант короткой ссылки уже существует.'
 
 
 class URLMap(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    original = db.Column(db.String(2048), nullable=False)
+    original = db.Column(db.String(ORIGINAL_URL_MAX_LENGTH), nullable=False)
     short = db.Column(
-        db.String(
-            app.config['SHORT_LENGTH']
-        ),
+        db.String(SHORT_LENGTH),
         unique=True,
         index=True,
         nullable=False
@@ -23,16 +38,18 @@ class URLMap(db.Model):
     timestamp = db.Column(
         db.DateTime, default=lambda: datetime.now(timezone.utc))
 
-    CHARS = string.ascii_letters + string.digits
-
     @staticmethod
-    def create_url_map(original, custom_short=None):
+    def create(original, custom_short=None):
+        if len(original) > ORIGINAL_URL_MAX_LENGTH:
+            raise ValidationError(INVALID_ORIGINAL_NAME)
+
         if custom_short:
-            custom_short = custom_short.strip()
-            if not URLMap._validate_short(custom_short):
-                raise URLMapException(app.config['INVALID_SHORT_NAME'])
-            if URLMap._short_exists(custom_short):
-                raise URLMapException(app.config['SHORT_LINK_EXISTS'])
+            if len(custom_short) > SHORT_LENGTH:
+                raise ValidationError(INVALID_SHORT_NAME)
+            if not re.match(SHORT_CHARS_PATTERN, custom_short):
+                raise ValidationError(INVALID_SHORT_NAME)
+            if URLMap.get(custom_short):
+                raise ValidationError(SHORT_LINK_EXISTS)
             short = custom_short
         else:
             short = URLMap._generate_unique_short()
@@ -42,55 +59,26 @@ class URLMap(db.Model):
         return url_map
 
     @staticmethod
-    def get_by_short(short):
+    def get(short):
         return URLMap.query.filter_by(short=short).first()
 
     @staticmethod
-    def _validate_short(short):
-        import re
-        if not short or len(short) > app.config['SHORT_LENGTH']:
-            return False
-        if not re.match(r'^[a-zA-Z0-9]+$', short):
-            return False
-        return True
-
-    @staticmethod
-    def _short_exists(short):
-        return short.lower() == 'files' or URLMap.query.filter_by(
-            short=short
-        ).first() is not None
-
-    @staticmethod
-    def _generate_unique_short(length=None):
-        if length is None:
-            length = app.config['SHORT_ID_DEFAULT_LENGTH']
-        for _ in range(app.config['MAX_RETRY_ATTEMPTS']):
-            short = ''.join(random.choices(URLMap.CHARS, k=length))
-            if not URLMap._short_exists(short) and short.lower() != 'files':
+    def _generate_unique_short():
+        for _ in range(MAX_RETRY_ATTEMPTS):
+            short = ''.join(random.choices(CHARS, k=SHORT_ID_DEFAULT_LENGTH))
+            if not URLMap.get(short) and short != 'files':
                 return short
-        raise URLMapException(
-            'Не удалось сгенерировать уникальную короткую ссылку'
-        )
+        raise ValidationError(GENERATION_ERROR_MESSAGE)
 
     def get_short_url(self):
         return url_for('redirect_view', short=self.short, _external=True)
 
     @staticmethod
     def batch_create(file_data_list):
-        created_records = []
-        for filename, public_url in file_data_list:
-            if public_url:
-                short = URLMap._generate_unique_short()
-                url_map = URLMap(original=public_url, short=short)
-                db.session.add(url_map)
-                created_records.append({
-                    'filename': filename,
-                    'short': short,
-                    'public_url': public_url
-                })
-        db.session.commit()
-        for record in created_records:
-            url_map = URLMap.query.filter_by(short=record['short']).first()
-            if url_map:
-                record['short_url'] = url_map.get_short_url()
-        return created_records
+        return [
+            {
+                'filename': filename,
+                'short_url': URLMap.create(url).get_short_url()
+            }
+            for filename, url in file_data_list if url
+        ]

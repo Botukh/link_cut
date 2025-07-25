@@ -3,18 +3,20 @@ from http import HTTPStatus
 from flask import render_template, jsonify, request
 
 from . import app, db
-from .exceptions import URLMapException
+from .exceptions import ValidationError, APIError
 
 
-@app.errorhandler(URLMapException)
+@app.errorhandler(ValidationError)
 def handle_url_map_exception(error):
-    if request.path.startswith('/api/'):
-        return jsonify(message=error.message), error.status_code
-    else:
-        return render_template(
-            'errors/400.html',
-            message=error.message
-        ), error.status_code
+    return render_template(
+        'errors/400.html',
+        message=error.message
+    ), error.status_code
+
+
+@app.errorhandler(APIError)
+def handle_api_error(error):
+    return jsonify(message=error.message), error.status_code
 
 
 @app.errorhandler(HTTPStatus.NOT_FOUND)

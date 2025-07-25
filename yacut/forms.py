@@ -2,32 +2,36 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, MultipleFileField
 from wtforms.validators import DataRequired, Length, Regexp, URL, Optional
 
-from . import app
+from settings import SHORT_LENGTH, SHORT_CHARS_PATTERN
+
+LONG_LINK_LABEL = 'Длинная ссылка'
+URL_FIELD_REQUIRED = '"url" является обязательным полем!'
+INCORRECT_URL = 'Некорректный URL'
+SHORT_LINK_LABEL = 'Короткая ссылка (по желанию)'
+ONLY_LETTERS_NUMBERS = 'Только буквы и цифры'
+CHOOSE_FILES = 'Выберите файлы'
+NO_FILES_TO_UPLOAD = 'Нет файлов для загрузки'
 
 
 class URLMapForm(FlaskForm):
     original_link = StringField(
-        app.config['LONG_LINK_LABEL'],
-        validators=[
-            DataRequired(message=app.config['URL_FIELD_REQUIRED']),
-            URL(message=app.config['INCORRECT_URL'])
-        ]
+        LONG_LINK_LABEL,
+        validators=[DataRequired(message=URL_FIELD_REQUIRED),
+                    URL(message=INCORRECT_URL)
+                    ]
     )
     custom_id = StringField(
-        app.config['SHORT_LINK_LABEL'],
+        SHORT_LINK_LABEL,
         validators=[
             Optional(),
-            Length(max=app.config['SHORT_LENGTH']),
-            Regexp(
-                app.config['SHORT_CHARS_PATTERN'],
-                message=app.config['ONLY_LETTERS_NUMBERS']
-            )
+            Length(max=SHORT_LENGTH),
+            Regexp(SHORT_CHARS_PATTERN,
+                   message=ONLY_LETTERS_NUMBERS)
         ]
     )
 
 
 class FileUploadForm(FlaskForm):
-    files = MultipleFileField(
-        app.config['CHOOSE_FILES'],
-        validators=[DataRequired(message=app.config['NO_FILES_TO_UPLOAD'])]
-    )
+    files = MultipleFileField(CHOOSE_FILES,
+                              validators=[DataRequired(
+                                  message=NO_FILES_TO_UPLOAD)])

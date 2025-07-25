@@ -1,49 +1,44 @@
 {% extends 'base.html' %}
 
-{% block title %}Главная - YaCut{% endblock %}
+{% block title %}YaCut{% endblock %}
 
 {% block content %}
 <section class="container my-5 px-4">
-  <h1 class="text-center"><span style="color:red">Ya</span>Cut</h1>
-  <p class="text-center my-4">Вставьте ссылку и получите короткий URL</p>
-
-  <div class="row justify-content-center">
-    <div class="col-md-8">
-      <form method="POST" action="{{ index_url }}">
-        {{ form.hidden_tag() }}
-
-        <div class="mb-3">
-          {{ form.original_link.label(class="form-label") }}
-          {{ form.original_link(class="form-control") }}
+    <h1 class="text-center"><span style="color:red">Ya</span>Cut</h1>
+    <p class="text-center my-4">Вставьте ссылку и получите короткий URL</p>
+    
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <form method="POST" action="{{ index_url }}">
+                {{ form.hidden_tag() }}
+                <div class="mb-3">
+                    {{ form.original_link.label(class="form-label") }}
+                    {{ form.original_link(class="form-control") }}
+                </div>
+                <div class="mb-3">
+                    {{ form.custom_id.label(class="form-label") }}
+                    {{ form.custom_id(class="form-control") }}
+                </div>
+                <div class="text-center">
+                    <input type="submit" class="btn btn-primary" value="Создать">
+                </div>
+            </form>
+            
+            {% with messages = get_flashed_messages() %}
+                {% for message in messages %}
+                    <ul class="alert alert-danger mt-4">
+                        <li>{{ message }}</li>
+                    </ul>
+                {% endfor %}
+            {% endwith %}
+            
+            {% if short %}
+                <div class="alert alert-success mt-4 text-center">
+                    <p>Ваша короткая ссылка:</p>
+                    <a href="{{ short }}">{{ short }}</a>
+                </div>
+            {% endif %}
         </div>
-
-        <div class="mb-3">
-          {{ form.custom_id.label(class="form-label") }}
-          {{ form.custom_id(class="form-control") }}
-        </div>
-
-        <div class="text-center">
-          <input type="submit" class="btn btn-primary" value="Создать">
-        </div>
-      </form>
-
-      {% with messages = get_flashed_messages() %}
-        {% if messages %}
-          <ul class="alert alert-danger mt-4">
-            {% for message in messages %}
-              <li>{{ message }}</li>
-            {% endfor %}
-          </ul>
-        {% endif %}
-      {% endwith %}
-
-      {% if short %}
-        <div class="alert alert-success mt-4 text-center">
-          <p>Ваша короткая ссылка:</p>
-          <a href="{{ short }}">{{ short }}</a>
-        </div>
-      {% endif %}
     </div>
-  </div>
 </section>
 {% endblock %}
