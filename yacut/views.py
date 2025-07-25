@@ -40,21 +40,23 @@ def file_upload_view():
 
     if not form.validate_on_submit():
         return render_template('files.html', form=form, uploaded=uploaded)
+
     files = request.files.getlist('files')
     if not files or not any(f.filename and f.filename.strip() for f in files):
         flash(NO_FILES_TO_UPLOAD)
         return render_template('files.html', form=form)
+
     try:
         public_urls = asyncio.run(async_upload_files_to_yadisk(files))
         file_data_list = [
-            (
-                file.filename, url
-            ) for file, url in zip(files, public_urls) if url
+            (file.filename, url) for file, url in zip(
+                files, public_urls) if url
         ]
-        uploaded = URLMap.batch_create([url for _, url in file_data_list])
+        uploaded = URLMap.batch_create(file_data_list)
     except Exception as e:
         flash(f'{FILE_UPLOAD_ERROR}: {e}')
         return render_template('files.html', form=form)
+
     return render_template(
         'files.html',
         form=form,
