@@ -5,7 +5,7 @@ from flask import render_template, request, redirect, flash, url_for
 from . import app
 from .forms import URLMapForm, FileUploadForm
 from .models import URLMap
-from .ydisk import async_upload_files_to_yadisk
+from .ydisk import upload_files_and_get_urls
 from .models import URLMapValidationError
 
 NO_FILES_TO_UPLOAD = 'Нет файлов для загрузки'
@@ -42,7 +42,7 @@ def file_upload_view():
         flash(NO_FILES_TO_UPLOAD)
         return render_template('files.html', form=form)
     try:
-        public_urls = async_upload_files_to_yadisk(files)
+        public_urls = upload_files_and_get_urls(files)
         uploaded = URLMap.batch_create([
             (file.filename, url) for file, url in zip(
                 files, public_urls) if url
