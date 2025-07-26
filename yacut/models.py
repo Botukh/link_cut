@@ -72,7 +72,7 @@ class URLMap(db.Model):
             short = ''.join(random.choices(CHARS, k=SHORT_DEFAULT_LENGTH))
             if not URLMap.get(short) and short.lower() != 'files':
                 return short
-        raise URLMapValidationError(GENERATION_ERROR_MESSAGE)
+        raise RuntimeError(GENERATION_ERROR_MESSAGE)
 
     def get_short_url(self):
         return url_for(

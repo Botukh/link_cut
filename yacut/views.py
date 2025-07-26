@@ -43,10 +43,10 @@ def file_upload_view():
             (file.filename, url) for file, url in zip(
                 request.files.getlist('files'),
                 upload_files_and_get_urls(request.files.getlist('files'))
-            ) if url
+            )
         ])
     except URLMapValidationError as e:
-        flash('{}: {}'.format(FILE_UPLOAD_ERROR, e))
+        flash(FILE_UPLOAD_ERROR.format(e))
         return render_template('files.html', form=form)
 
     return render_template(
