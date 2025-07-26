@@ -6,7 +6,6 @@ from . import app
 from .exceptions import APIError
 from .models import URLMap, URLMapValidationError
 
-
 MISSING_REQUEST_BODY = 'Отсутствует тело запроса'
 URL_FIELD_REQUIRED = '"url" является обязательным полем!'
 ID_NOT_FOUND = 'Указанный id не найден'
@@ -19,16 +18,14 @@ def create_short_url():
         raise APIError(MISSING_REQUEST_BODY, HTTPStatus.BAD_REQUEST)
     if 'url' not in data:
         raise APIError(URL_FIELD_REQUIRED, HTTPStatus.BAD_REQUEST)
-
     original = data['url']
     custom_id = data.get('custom_id')
-
     try:
         return jsonify(
             url=original,
             short_link=URLMap.create(original, custom_id).get_short_url()
         ), HTTPStatus.CREATED
-    except URLMapValidationError as e:
+    except (URLMapValidationError, RuntimeError) as e:
         raise APIError(str(e))
 
 

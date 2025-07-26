@@ -26,7 +26,7 @@ def index_view():
             short=URLMap.create(original, custom_id).get_short_url(),
             index_url=url_for('index_view')
         )
-    except URLMapValidationError as e:
+    except (URLMapValidationError, RuntimeError) as e:
         flash(str(e))
         return render_template('index.html', form=form)
 
@@ -45,7 +45,7 @@ def file_upload_view():
                 upload_files_and_get_urls(request.files.getlist('files'))
             )
         ])
-    except URLMapValidationError as e:
+    except (URLMapValidationError, RuntimeError) as e:
         flash(FILE_UPLOAD_ERROR.format(e))
         return render_template('files.html', form=form)
 
