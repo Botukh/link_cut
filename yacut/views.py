@@ -37,18 +37,16 @@ def file_upload_view():
 
     if not form.validate_on_submit():
         return render_template('files.html', form=form, uploaded=[])
-    files = request.files.getlist('files')
-    if not files or not any(f.filename and f.filename.strip() for f in files):
-        flash(NO_FILES_TO_UPLOAD)
-        return render_template('files.html', form=form)
+
     try:
-        public_urls = upload_files_and_get_urls(files)
         uploaded = URLMap.batch_create([
             (file.filename, url) for file, url in zip(
-                files, public_urls) if url
+                request.files.getlist('files'),
+                upload_files_and_get_urls(request.files.getlist('files'))
+            ) if url
         ])
-    except Exception as e:
-        flash(f'{FILE_UPLOAD_ERROR}: {e}')
+    except URLMapValidationError as e:
+        flash('{}: {}'.format(FILE_UPLOAD_ERROR, e))
         return render_template('files.html', form=form)
 
     return render_template(

@@ -1,7 +1,10 @@
 import os
+import string
+import re
 
 SHORT_LENGTH = 16
-SHORT_CHARS_PATTERN = r'^[a-zA-Z0-9]{1,16}$'
+CHARS = string.ascii_letters + string.digits
+SHORT_CHARS_PATTERN = rf'^[{re.escape(CHARS)}]+$'
 MAX_SHORT_GENERATION_ATTEMPTS = 100
 SHORT_DEFAULT_LENGTH = 6
 REDIRECT_VIEW_ENDPOINT = 'redirect_view'
